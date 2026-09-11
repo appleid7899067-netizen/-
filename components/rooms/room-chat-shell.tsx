@@ -1,13 +1,13 @@
 "use client"
 
+import { useEveAgent } from "eve/react"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowLeft, ChevronDown, Loader2, Send, Sparkles } from "lucide-react"
+import { ArrowLeft, ChevronDown, Loader2, Mic, MicOff, Send, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { rooms } from "@/lib/brand"
 import { withAgentProfile, type AgentMessage } from "@/lib/agent-profile"
-import { streamPuterChat } from "@/lib/puter-ai"
 import { ensureAnonymousSession, getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 type RoomId = "sli" | "work" | "lab"
@@ -58,7 +58,7 @@ function isInternalDebugMessage(text: string) {
 
 function friendlyError(error: unknown, fallback: string) {
   if (error instanceof Error && /auth|login|sign.?in|puter/i.test(error.message)) {
-    return "เข้าสู่ระบบ Puter ก่อนเริ่มใช้งาน workspace"
+    return "เข้าสู่ระบบ Google ก่อนเริ่มใช้งาน workspace"
   }
   return fallback
 }
@@ -86,6 +86,7 @@ export function RoomChatShell() {
   const [nameChecked, setNameChecked] = useState(false)
   const [draft, setDraft] = useState("")
   const [signingIn, setSigningIn] = useState(false)
+  const [listening, setListening] = useState(false)
   const channelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowserClient>["channel"]> | null>(null)
   const seenIds = useRef(new Set<string>())
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -94,6 +95,15 @@ export function RoomChatShell() {
     [activeRoomId],
   )
   const activeMessages = messagesByRoom[activeRoom.id]
+  const eve = useEveAgent({
+    headers: async () => {
+      const { data } = await getSupabaseBrowserClient().auth.getSession()
+      return data.session?.access_token
+        ? { authorization: `Bearer ${data.session.access_token}` }
+        : { authorization: "" }
+    },
+  })
+  const eveBusy = eve.status === "submitted" || eve.status === "streaming"
 
   useEffect(() => setActiveRoomId(requestedRoomId), [requestedRoomId])
 
@@ -103,6 +113,19 @@ export function RoomChatShell() {
     } finally {
       setNameChecked(true)
     }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void getSupabaseBrowserClient().auth.getUser().then(({ data }) => {
+      if (cancelled) return
+      const isGmail = Boolean(data.user?.email?.toLowerCase().endsWith("@gmail.com"))
+      setPuterSignedIn(isGmail && data.user?.app_metadata?.provider === "google")
+      setPuterChecked(true)
+    }).catch(() => {
+      if (!cancelled) setPuterChecked(true)
+    })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -270,19 +293,19 @@ export function RoomChatShell() {
   async function signIn() {
     if (signingIn) return
     setRoomError(null)
-
-    if (!window.puter) {
-      setRoomError("กำลังโหลดบริการเข้าสู่ระบบ ลองอีกครั้ง")
-      return
-    }
-
     setSigningIn(true)
     try {
-      await window.puter.auth.signIn()
-      setPuterSignedIn(true)
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+          queryParams: { access_type: "offline", prompt: "select_account" },
+        },
+      })
+      if (error) throw error
     } catch (error) {
-      setRoomError(friendlyError(error, "เข้าสู่ระบบ Puter ไม่สำเร็จ ลองอีกครั้ง"))
-    } finally {
+      setRoomError(friendlyError(error, "เข้าสู่ระบบ Google ไม่สำเร็จ ลองอีกครั้ง"))
       setSigningIn(false)
     }
   }
@@ -291,7 +314,7 @@ export function RoomChatShell() {
     const text = draft.trim()
     if (!text || sending) return
     if (!puterSignedIn) {
-      setRoomError("เข้าสู่ระบบ Puter ก่อนเริ่มใช้งาน workspace")
+      setRoomError("เข้าสู่ระบบ Google ด้วยบัญชี Gmail ก่อนเริ่มใช้งาน workspace")
       return
     }
 
@@ -322,36 +345,7 @@ export function RoomChatShell() {
 
     try {
       await insertMessage(userMessage)
-      const responseText = await streamPuterChat(
-        withAgentProfile(toAgentMessages(history)),
-        (partial) =>
-          setMessagesByRoom((current) => ({
-            ...current,
-            [roomId]: [
-              ...current[roomId].filter((message) => !message.id.startsWith(`assistant-${clientId}`)),
-              {
-                id: `assistant-${clientId}`,
-                room_id: roomId,
-                sender_id: userId ?? undefined,
-                client_id: `assistant-${clientId}`,
-                author: activeRoom.name,
-                initials: initialsFor(activeRoom.label),
-                role: "assistant",
-                text: partial,
-                created_at: new Date().toISOString(),
-              },
-            ],
-          })),
-      )
-      await insertMessage({
-        room_id: roomId,
-        sender_id: userId ?? undefined,
-        client_id: `assistant-${clientId}`,
-        author: activeRoom.name,
-        initials: initialsFor(activeRoom.label),
-        role: "assistant",
-        text: responseText,
-      })
+      await eve.send(`${activeRoom.name} room context. ${text}`)
     } catch (error) {
       setMessagesByRoom((current) => ({
         ...current,
@@ -367,6 +361,28 @@ export function RoomChatShell() {
       setSending(false)
       setTyping(false)
     }
+  }
+
+  function toggleVoiceInput() {
+    const SpeechRecognition = (window as Window & { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }).SpeechRecognition ?? (window as Window & { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setRoomError("เบราว์เซอร์นี้ยังไม่รองรับการพิมพ์ด้วยเสียง")
+      return
+    }
+    const recognition = new SpeechRecognition()
+    recognition.lang = "th-TH"
+    recognition.interimResults = false
+    recognition.onstart = () => setListening(true)
+    recognition.onend = () => setListening(false)
+    recognition.onerror = () => {
+      setListening(false)
+      setRoomError("รับเสียงไม่สำเร็จ ลองพูดอีกครั้ง")
+    }
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? ""
+      setDraft((current) => `${current}${current ? " " : ""}${transcript}`)
+    }
+    recognition.start()
   }
 
   function handleComposerKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -539,7 +555,7 @@ export function RoomChatShell() {
                     onClick={() => void signIn()}
                     type="button"
                   >
-                    เข้าสู่ระบบ Puter
+                    เข้าสู่ระบบ Google
                   </button>
                 ) : null}
               </div>
@@ -623,6 +639,15 @@ export function RoomChatShell() {
               rows={1}
               value={draft}
             />
+            <button
+              aria-label={listening ? "กำลังฟังเสียง" : "พิมพ์ด้วยเสียง"}
+              className="grid size-10 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={sending}
+              onClick={toggleVoiceInput}
+              type="button"
+            >
+              {listening ? <MicOff aria-hidden="true" className="size-4" /> : <Mic aria-hidden="true" className="size-4" />}
+            </button>
             <button
               aria-label="ส่งข้อความ"
               className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
