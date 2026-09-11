@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,43 +36,67 @@ export function ChatWidget() {
     }
   }, [messages, loading, open]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (window.puter?.auth) {
+        setSignedIn(window.puter.auth.isSignedIn());
+        window.clearInterval(timer);
+      }
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const send = useCallback(async () => {
     const text = input.trim();
     if (!text || loading) return;
+
+    if (!window.puter?.ai) {
+      setError("Puter ยังโหลดไม่เสร็จ กรุณาลองใหม่");
+      return;
+    }
+    if (!window.puter.auth.isSignedIn()) {
+      setError("กรุณาเข้าสู่ระบบด้วย Puter ก่อนใช้งานบอท");
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: "user",
       content: text,
     };
-    setMessages((prev) => [...prev, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch("/api/openrouter/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMsg].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      const response = await window.puter.ai.chat(
+        history.map((m) => ({ role: m.role, content: m.content })),
+        { stream: true }
+      );
+
+      let reply = "";
+      const assistantId = `a-${Date.now()}`;
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: "assistant", content: "" },
+      ]);
+
+      for await (const part of response) {
+        if (part?.text) {
+          reply += part.text;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: reply } : m
+            )
+          );
+        }
       }
-      const reply = data?.choices?.[0]?.message?.content;
+
       if (!reply) {
         throw new Error("ไม่ได้รับคำตอบจากโมเดล กรุณาลองใหม่");
       }
-      setMessages((prev) => [
-        ...prev,
-        { id: `a-${Date.now()}`, role: "assistant", content: reply },
-      ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -112,7 +138,7 @@ export function ChatWidget() {
                 บอท SILELO
               </p>
               <p className="text-[12px] leading-tight opacity-80">
-                พร้อมช่วยคุณเสมอ
+                {signedIn ? "พร้อมช่วยคุณเสมอ" : "เข้าสู่ระบบด้วย Puter ก่อน"}
               </p>
             </div>
             <button
@@ -141,23 +167,23 @@ export function ChatWidget() {
           >
             {messages.map((m) => (
               <div
-              className={cn(
-                "flex max-w-[85%]",
-                m.role === "user" ? "ml-auto justify-end" : "justify-start"
-              )}
-              key={m.id}
-            >
-              <div
                 className={cn(
-                  "whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[14px] leading-relaxed",
-                  m.role === "user"
-                    ? "rounded-br-sm bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]"
-                    : "rounded-bl-sm bg-neutral-100 text-neutral-800 dark:bg-white/5 dark:text-neutral-200"
+                  "flex max-w-[85%]",
+                  m.role === "user" ? "ml-auto justify-end" : "justify-start"
                 )}
+                key={m.id}
               >
-                {m.content}
+                <div
+                  className={cn(
+                    "whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[14px] leading-relaxed",
+                    m.role === "user"
+                      ? "rounded-br-sm bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]"
+                      : "rounded-bl-sm bg-neutral-100 text-neutral-800 dark:bg-white/5 dark:text-neutral-200"
+                  )}
+                >
+                  {m.content}
+                </div>
               </div>
-            </div>
             ))}
             {loading ? (
               <div className="flex justify-start">
@@ -175,31 +201,42 @@ export function ChatWidget() {
           </div>
 
           {/* ช่องพิมพ์ */}
-          <form
-            className="flex items-center gap-2 border-t border-[#e5e5e5] px-3 py-3 dark:border-white/10"
-            onSubmit={(e) => {
-              e.preventDefault();
-              send();
-            }}
-          >
-            <input
-              aria-label="พิมพ์ข้อความ"
-              className="h-10 flex-1 rounded-lg border border-[#e5e5e5] bg-transparent px-3 text-[14px] text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400 dark:border-white/15 dark:text-neutral-100 dark:focus:border-white/30"
-              disabled={loading}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="พิมพ์ข้อความ..."
-              value={input}
-            />
-            <button
-              aria-label="ส่งข้อความ"
-              className="grid size-10 shrink-0 place-items-center rounded-lg text-[#01030a] transition-opacity hover:opacity-85 disabled:opacity-40"
-              disabled={loading || !input.trim()}
-              style={{ backgroundImage: GRADIENT }}
-              type="submit"
+          {signedIn ? (
+            <form
+              className="flex items-center gap-2 border-t border-[#e5e5e5] px-3 py-3 dark:border-white/10"
+              onSubmit={(e) => {
+                e.preventDefault();
+                send();
+              }}
             >
-              <Send className="size-4" />
-            </button>
-          </form>
+              <input
+                aria-label="พิมพ์ข้อความ"
+                className="h-10 flex-1 rounded-lg border border-[#e5e5e5] bg-transparent px-3 text-[14px] text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400 dark:border-white/15 dark:text-neutral-100 dark:focus:border-white/30"
+                disabled={loading}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="พิมพ์ข้อความ..."
+                value={input}
+              />
+              <button
+                aria-label="ส่งข้อความ"
+                className="grid size-10 shrink-0 place-items-center rounded-lg text-[#01030a] transition-opacity hover:opacity-85 disabled:opacity-40"
+                disabled={loading || !input.trim()}
+                style={{ backgroundImage: GRADIENT }}
+                type="submit"
+              >
+                <Send className="size-4" />
+              </button>
+            </form>
+          ) : (
+            <div className="border-t border-[#e5e5e5] px-4 py-3 dark:border-white/10">
+              <Link
+                className="block w-full rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-center text-[14px] font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-[#0a0a0a]"
+                href="/login"
+              >
+                เข้าสู่ระบบด้วย Puter
+              </Link>
+            </div>
+          )}
         </div>
       ) : null}
     </>
