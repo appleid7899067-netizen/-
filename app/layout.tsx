@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import Script from 'next/script'
 import { Noto_Sans_Thai } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import { ThemeProvider } from 'next-themes'
@@ -57,6 +58,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        <Script src="https://js.puter.com/v2/" strategy="afterInteractive" />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

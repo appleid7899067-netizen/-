@@ -5,7 +5,7 @@ declare global {
         signIn: (options?: {
           attempt_temp_user_creation?: boolean;
           request_auth?: boolean;
-        }) => Promise<<unknown>>;
+        }) => Promise<unknown>;
         signOut: () => void | Promise<void>;
         isSignedIn: () => boolean;
         getUser: () => Promise<{
@@ -31,7 +31,5 @@ declare global {
     };
   }
 }
-
-export {};
 
 export {};

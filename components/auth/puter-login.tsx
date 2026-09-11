@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -11,25 +10,44 @@ export function PuterLogin() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      if (window.puter?.auth) {
-        setReady(true);
-        window.clearInterval(timer);
-        if (window.puter.auth.isSignedIn()) router.replace("/home");
+    let cancelled = false;
+
+    const checkPuter = () => {
+      const auth = window.puter?.auth;
+      if (cancelled) return;
+
+      if (!auth) {
+        window.setTimeout(checkPuter, 100);
+        return;
       }
-    }, 100);
-    return () => window.clearInterval(timer);
+
+      setReady(true);
+      if (auth.isSignedIn()) {
+        router.replace("/home");
+        router.refresh();
+      }
+    };
+
+    checkPuter();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function signIn() {
     setError("");
     setBusy(true);
     try {
-      if (!window.puter?.auth) throw new Error("Puter ยังโหลดไม่เสร็จ");
-      await window.puter.auth.signIn();
-      // รอให้ Puter ยืนยันสถานะล็อกอินจริงก่อนเด้งกลับเข้าแอป
+      const auth = window.puter?.auth;
+      if (!auth) throw new Error("Puter ยังโหลดไม่เสร็จ");
+
+      const signedInUser = await auth.signIn();
+      // ยืนยัน session ก่อนกลับเข้าแอป เพื่อไม่ให้หน้า home เห็นสถานะเก่า
       const confirmed = await waitForSignedIn(5000);
-      if (!confirmed) throw new Error("ยังไม่สามารถยืนยันการเข้าสู่ระบบได้");
+      if (!confirmed && !signedInUser) {
+        throw new Error("ยังไม่สามารถยืนยันการเข้าสู่ระบบได้");
+      }
+
       router.replace("/home");
       router.refresh();
     } catch (err) {
@@ -54,7 +72,6 @@ export function PuterLogin() {
 
   return (
     <>
-      <Script src="https://js.puter.com/v2/" strategy="afterInteractive" onLoad={() => setReady(true)} />
       <button
         type="button"
         onClick={signIn}
