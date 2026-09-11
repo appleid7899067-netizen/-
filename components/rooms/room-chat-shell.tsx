@@ -72,21 +72,22 @@ export function RoomChatShell() {
     let cancelled = false
     const supabase = getSupabaseBrowserClient()
     setStatus("checking")
-    void ensureAnonymousSession().then(async (user) => {
+    void ensureAnonymousSession().catch(() => null).then(async (user) => {
       if (cancelled) return
-      setUserId(user.id)
+      setUserId(user?.id ?? null)
       const { data, error } = await supabase.from("room_messages").select("id,room_id,sender_id,client_id,author,initials,role,text,created_at").eq("room_id", activeRoom.id).order("created_at", { ascending: true }).limit(200)
       if (error) throw error
       if (!cancelled) { setMessagesByRoom((current) => ({ ...current, [activeRoom.id]: data as RoomMessage[] })); (data as RoomMessage[]).forEach((message) => { seenIds.current.add(message.id); if (message.client_id) seenIds.current.add(`client:${message.client_id}`) }) }
-      const channel = supabase.channel(roomTopic(activeRoom.id), { config: { broadcast: { self: false }, presence: { key: user.id } } })
+      const presenceKey = user?.id ?? `guest-${crypto.randomUUID()}`
+      const channel = supabase.channel(roomTopic(activeRoom.id), { config: { broadcast: { self: false }, presence: { key: presenceKey } } })
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_messages", filter: `room_id=eq.${activeRoom.id}` }, ({ new: row }) => addMessage(row as RoomMessage))
-        .on("broadcast", { event: "typing" }, ({ payload }) => { if (payload?.userId !== user.id) { setTyping(Boolean(payload?.isTyping)); window.setTimeout(() => setTyping(false), 1800) } })
+        .on("broadcast", { event: "typing" }, ({ payload }) => { if (payload?.userId !== presenceKey) { setTyping(Boolean(payload?.isTyping)); window.setTimeout(() => setTyping(false), 1800) } })
         .on("presence", { event: "sync" }, () => setMembers(Object.keys(channel.presenceState()).length || 1))
         .on("presence", { event: "join" }, () => setMembers(Object.keys(channel.presenceState()).length || 1))
         .on("presence", { event: "leave" }, () => setMembers(Math.max(1, Object.keys(channel.presenceState()).length)))
       channelRef.current = channel
       await channel.subscribe(async (subscriptionStatus) => {
-        if (subscriptionStatus === "SUBSCRIBED") { setStatus("live"); await channel.track({ userId: user.id, joinedAt: new Date().toISOString() }) }
+        if (subscriptionStatus === "SUBSCRIBED") { setStatus("live"); await channel.track({ userId: presenceKey, joinedAt: new Date().toISOString() }) }
         if (subscriptionStatus === "CHANNEL_ERROR" || subscriptionStatus === "TIMED_OUT") setStatus("error")
       })
     }).catch((error) => { if (!cancelled) { setStatus("offline"); setRoomError(error instanceof Error ? error.message : "เชื่อมต่อห้องไม่สำเร็จ") } })
@@ -108,21 +109,21 @@ export function RoomChatShell() {
   async function sendMessage(text: string) {
     if (!text.trim() || sending) return
     if (!puterSignedIn) { setRoomError("เข้าสู่ระบบ Puter ก่อนเริ่มแชทกับ Agent"); return }
-    if (!userId) { setRoomError("กำลังเตรียม session ห้อง ลองอีกครั้งในอีกสักครู่"); return }
+
     const roomId = activeRoom.id
     const clientId = crypto.randomUUID()
-    const userMessage: Omit<RoomMessage, "id" | "created_at"> = { room_id: roomId, sender_id: userId, client_id: clientId, author: "คุณ", initials: "ค", role: "user", text: text.trim() }
+    const userMessage: Omit<RoomMessage, "id" | "created_at"> = { room_id: roomId, sender_id: userId ?? null, client_id: clientId, author: "คุ���", initials: "ค", role: "user", text: text.trim() }
     const history = [...activeMessages, { ...userMessage, id: `optimistic-${clientId}`, created_at: new Date().toISOString() } as RoomMessage]
     setSending(true); setRoomError(null); setTyping(true)
     setMessagesByRoom((current) => ({ ...current, [roomId]: history }))
     seenIds.current.add(`client:${clientId}`)
-    await channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId, isTyping: true } })
+    await channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId: userId ?? `guest-${clientId}`, isTyping: true } })
     try {
       await insertMessage(userMessage)
       const responseText = await streamPuterChat(withAgentProfile(toAgentMessages(history)), (partial) => setMessagesByRoom((current) => ({ ...current, [roomId]: [...current[roomId].filter((message) => !message.id.startsWith("assistant-")), { id: `assistant-${clientId}`, room_id: roomId, sender_id: userId, author: activeRoom.name, initials: initialsFor(activeRoom.label), role: "assistant", text: partial, created_at: new Date().toISOString() }] })))
       await insertMessage({ room_id: roomId, sender_id: userId, client_id: `assistant-${clientId}`, author: activeRoom.name, initials: initialsFor(activeRoom.label), role: "assistant", text: responseText })
     } catch (error) { setMessagesByRoom((current) => ({ ...current, [roomId]: current[roomId].filter((message) => message.client_id !== clientId && !message.id.startsWith(`assistant-${clientId}`)) })); setRoomError(error instanceof Error ? error.message : "ส่งข้อความไม่สำเร็จ") }
-    finally { setSending(false); setTyping(false); await channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId, isTyping: false } }) }
+    finally { setSending(false); setTyping(false); await channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId: userId ?? `guest-${clientId}`, isTyping: false } }) }
   }
 
   return <main className="min-h-dvh bg-background text-foreground">
