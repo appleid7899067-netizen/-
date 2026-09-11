@@ -70,6 +70,12 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 justify-self-end">
+          <Link
+            className={cn(NAV_LINK_CLASS, "hidden md:inline-flex")}
+            href="/rooms"
+          >
+            ห้องแชท
+          </Link>
           <button
             aria-label={isDark ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"}
             className="grid size-8 place-items-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-white/5"
@@ -105,6 +111,15 @@ export function SiteHeader() {
       {menuOpen ? (
         <div className="border-t border-[#ededed] bg-white px-4 py-3 lg:hidden dark:border-white/10 dark:bg-[#0a0a0a]">
           <ul className="flex flex-col gap-1">
+            <li>
+              <Link
+                className="block rounded-md px-2 py-2 text-[15px] text-neutral-700 transition-colors hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-white/5"
+                href="/rooms"
+                onClick={closeMenu}
+              >
+                ห้องแชทจำลอง
+              </Link>
+            </li>
             {marketingNav.map((item) => (
               <li key={item.href}>
                 <Link

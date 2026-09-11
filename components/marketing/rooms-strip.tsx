@@ -26,9 +26,7 @@ export function RoomsStrip() {
             <li key={room.label}>
               <Link
                 className="group block"
-                href={room.url}
-                rel="noreferrer"
-                target="_blank"
+                href={`/rooms?room=${room.label.toLowerCase()}`}
               >
                 <span className="flex items-center gap-2">
                   <span
