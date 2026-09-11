@@ -12,7 +12,7 @@ const NAV_LINK_CLASS =
   "inline-flex rounded-md px-2.5 py-1.5 text-[14px] text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-neutral-50";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex items-center rounded-lg bg-[#0a0a0a] px-3.5 py-1.5 text-[14px] text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-[#0a0a0a]";
+  "inline-flex items-center rounded-lg bg-gradient-to-br from-[#00e5ff] via-[#a78bfa] to-[#ff2d95] px-3.5 py-1.5 text-[14px] font-medium text-white shadow-[0_2px_10px_rgba(167,139,250,0.35)] transition-all hover:shadow-[0_4px_16px_rgba(255,45,149,0.45)]";
 
 const SECONDARY_BUTTON_CLASS =
   "inline-flex items-center rounded-lg border border-[#e5e5e5] px-3 py-1.5 text-[14px] text-neutral-800 transition-colors hover:bg-neutral-50 dark:border-white/15 dark:text-neutral-200 dark:hover:bg-white/5";
@@ -42,6 +42,10 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#ededed] bg-white/85 backdrop-blur-md dark:border-white/10 dark:bg-[#0a0a0a]/85">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#a78bfa] to-transparent"
+      />
       <div className="grid h-[50px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6">
         <Link
           className="flex items-center gap-2 justify-self-start"

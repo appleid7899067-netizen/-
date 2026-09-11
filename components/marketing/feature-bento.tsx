@@ -64,7 +64,10 @@ export function FeatureBento() {
           <p className="font-semibold text-[34px] leading-[1.06] tracking-[-0.03em] sm:text-[38px]">
             พร้อมท์.
             <br />
-            สร้าง. เผยแพร่.
+            สร้าง.{" "}
+            <span className="bg-gradient-to-r from-[#00e5ff] via-[#a78bfa] to-[#ff2d95] bg-clip-text text-transparent">
+              เผยแพร่.
+            </span>
           </p>
           <p className="mt-4 max-w-[38ch] text-[15px] text-neutral-500">
             สร้างเว็บแอปที่ใช้งานได้จริงในไม่กี่นาทีด้วย AI แล้วปล่อยเป็นเว็บจริงในไม่กี่วินาที
