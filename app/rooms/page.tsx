@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { RoomChatShell } from "@/components/rooms/room-chat-shell";
 
 export const metadata: Metadata = {
-  description: "ลองใช้งานห้องแชทจำลองของ SILELO ได้ทันทีในเบราว์เซอร์",
-  title: "ห้องแชทจำลอง — SILELO",
+  description: "ห้องแชท live ของ SILELO Agent พร้อม Puter AI, ไฟล์แนบ และ sandbox runtime",
+  title: "Live rooms — SILELO",
 };
 
 export default function RoomsPage() {
@@ -18,7 +18,7 @@ export default function RoomsPage() {
 function RoomsLoadingState() {
   return (
     <main className="grid min-h-dvh place-items-center bg-background text-muted-foreground">
-      กำลังเปิดห้องแชทจำลอง...
+      กำลังเชื่อมต่อ live room...
     </main>
   );
 }

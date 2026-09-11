@@ -7,7 +7,7 @@ import './globals.css'
 
 const noto = Noto_Sans_Thai({
   subsets: ['latin', 'thai'],
-  variable: '--font-sans',
+  variable: '--font-noto',
 })
 
 export const metadata: Metadata = {

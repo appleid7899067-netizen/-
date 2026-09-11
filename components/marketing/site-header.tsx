@@ -117,7 +117,7 @@ export function SiteHeader() {
                 href="/rooms"
                 onClick={closeMenu}
               >
-                ห้องแชทจำลอง
+                ห้องแชท live
               </Link>
             </li>
             {marketingNav.map((item) => (

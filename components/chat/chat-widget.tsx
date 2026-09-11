@@ -1,247 +1,300 @@
 "use client";
 
-import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { brand } from "@/lib/brand";
-import { withAgentProfile } from "@/lib/agent-profile";
+import {
+  Bot,
+  ChevronDown,
+  FileText,
+  Loader2,
+  MessageCircle,
+  Paperclip,
+  Send,
+  Sparkles,
+  User,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import {
+  AttachmentError,
+  AttachmentPickerButton,
+  AttachmentQueue,
+  useAttachmentUploader,
+} from "@/components/files/attachment-uploader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { attachmentManifestLabel } from "@/lib/attachments";
+import { withAgentProfile, type AgentMessage } from "@/lib/agent-profile";
+import { streamPuterChat } from "@/lib/puter-ai";
 import { cn } from "@/lib/utils";
 
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
-
-const WELCOME: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "สวัสดีครับ ผมคือบอทของ SILELO พร้อมช่วยคุณสร้างเว็บแอปจากไอเดีย ถามอะไรก็ได้เลยครับ",
-};
-
-const GRADIENT = `linear-gradient(135deg, ${brand.accent} 0%, ${brand.accentViolet} 52%, ${brand.accentAlt} 100%)`;
+function getPuterErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return "ยังตอบไม่ได้ในตอนนี้ ลองใหม่อีกครั้งหลังจากตรวจสอบ Puter login";
+}
 
 export function ChatWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [signedIn, setSignedIn] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [messages, setMessages] = useState<AgentMessage[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const {
+    busy: attachmentsBusy,
+    clearUploaded,
+    fileInputRef,
+    items: attachmentItems,
+    onInputChange,
+    onPaste,
+    openPicker,
+    remove,
+    retry,
+    uploaded: uploadedAttachments,
+  } = useAttachmentUploader({ onNotice: setNotice, scope: "widget" });
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, loading, open]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      if (window.puter?.auth) {
-        setSignedIn(window.puter.auth.isSignedIn());
-        window.clearInterval(timer);
-      }
-    }, 100);
-    return () => window.clearInterval(timer);
+    let mounted = true;
+    void Promise.resolve(window.puter?.auth.isSignedIn())
+      .then((signedIn) => {
+        if (!mounted) return;
+        setIsAuthenticated(Boolean(signedIn));
+        setAuthChecked(true);
+      })
+      .catch(() => {
+        if (mounted) setAuthChecked(true);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || loading) return;
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
-    if (!window.puter?.ai) {
-      setError("Puter ยังโหลดไม่เสร็จ กรุณาลองใหม่");
-      return;
-    }
-    if (!window.puter.auth.isSignedIn()) {
-      setError("กรุณาเข้าสู่ระบบด้วย Puter ก่อนใช้งานบอท");
-      return;
-    }
-
-    const userMsg: ChatMessage = {
-      id: `u-${Date.now()}`,
-      role: "user",
-      content: text,
-    };
-    const history = [...messages, userMsg];
-    setMessages(history);
-    setInput("");
-    setLoading(true);
+  const signIn = async () => {
     setError(null);
+    if (!window.puter) {
+      setError("ไม่พบ Puter SDK ในหน้านี้");
+      return;
+    }
+    try {
+      await window.puter.auth.signIn();
+      setIsAuthenticated(true);
+    } catch (signInError) {
+      setError(getPuterErrorMessage(signInError));
+    }
+  };
+
+  const sendMessage = async () => {
+    const text = draft.trim();
+    if ((!text && uploadedAttachments.length === 0) || isTyping || attachmentsBusy) return;
+    if (!isAuthenticated) {
+      setError("เข้าสู่ระบบ Puter ก่อนเริ่มคุยกับ SILELO Agent");
+      return;
+    }
+
+    const attachmentText = uploadedAttachments.length
+      ? `ไฟล์แนบใน workspace:\n${uploadedAttachments
+          .map(attachmentManifestLabel)
+          .join("\n")}`
+      : "";
+    const content = [text, attachmentText].filter(Boolean).join("\n\n");
+    const nextMessages = [...messages, { content, role: "user" as const }];
+    setMessages(nextMessages);
+    setDraft("");
+    setError(null);
+    setIsTyping(true);
 
     try {
-      const response = await window.puter.ai.chat(
-        withAgentProfile(
-          history.map((m) => ({ role: m.role, content: m.content }))
-        ),
-        { stream: true }
+      const responseText = await streamPuterChat(
+        withAgentProfile(nextMessages),
+        () => undefined,
       );
-
-      let reply = "";
-      const assistantId = `a-${Date.now()}`;
-      setMessages((prev) => [
-        ...prev,
-        { id: assistantId, role: "assistant", content: "" },
+      setMessages((current) => [
+        ...current,
+        { content: responseText, role: "assistant" },
       ]);
-
-      for await (const part of response) {
-        if (part?.text) {
-          reply += part.text;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, content: reply } : m
-            )
-          );
-        }
-      }
-
-      if (!reply) {
-        throw new Error("ไม่ได้รับคำตอบจากโมเดล กรุณาลองใหม่");
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      clearUploaded();
+    } catch (chatError) {
+      setError(getPuterErrorMessage(chatError));
     } finally {
-      setLoading(false);
+      setIsTyping(false);
     }
-  }, [input, loading, messages]);
+  };
 
-  const reset = useCallback(() => {
-    setMessages([WELCOME]);
-    setError(null);
-  }, []);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing &&
+      event.keyCode !== 229
+    ) {
+      event.preventDefault();
+      void sendMessage();
+    }
+  };
 
   return (
-    <>
-      {/* ปุ่มเปิดแชท */}
-      <button
-        aria-label="เปิดแชทกับบอท SILELO"
-        className="fixed bottom-5 right-5 z-50 grid size-14 place-items-center rounded-full text-[#01030a] shadow-lg shadow-black/20 transition-transform hover:scale-105 active:scale-95"
-        onClick={() => setOpen((o) => !o)}
-        style={{ backgroundImage: GRADIENT }}
-        type="button"
-      >
-        {open ? <X className="size-6" /> : <MessageCircle className="size-6" />}
-      </button>
-
-      {/* หน้าพูดคุย */}
+    <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
       {open ? (
-        <div className="fixed bottom-24 right-5 z-50 flex h-[min(560px,calc(100vh-8rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-[#e5e5e5] bg-white shadow-2xl shadow-black/20 dark:border-white/10 dark:bg-[#0d0d0d]">
-          {/* หัวแชท */}
-          <div
-            className="flex items-center gap-3 px-4 py-3 text-[#01030a]"
-            style={{ backgroundImage: GRADIENT }}
-          >
-            <span className="grid size-8 place-items-center rounded-lg bg-white/20">
-              <Bot className="size-5" />
-            </span>
-            <div className="flex-1">
-              <p className="text-[14px] font-semibold leading-tight">
-                บอท SILELO
-              </p>
-              <p className="text-[12px] leading-tight opacity-80">
-                {signedIn ? "พร้อมช่วยคุณเสมอ" : "เข้าสู่ระบบด้วย Puter ก่อน"}
-              </p>
+        <section
+          aria-label="SILELO Agent chat"
+          className="flex h-[min(680px,calc(100dvh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-border bg-background/95 shadow-2xl shadow-black/30 backdrop-blur-xl"
+        >
+          <header className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary">
+                <Sparkles aria-hidden="true" className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">SILELO Agent</p>
+                <p className="text-xs text-muted-foreground">
+                  {isAuthenticated ? "Puter พร้อมใช้งาน" : "ต้องเข้าสู่ระบบ Puter"}
+                </p>
+              </div>
             </div>
-            <button
-              aria-label="ล้างการสนทนา"
-              className="grid size-8 place-items-center rounded-lg transition-colors hover:bg-white/20"
-              onClick={reset}
-              type="button"
-            >
-              <Sparkles className="size-4" />
-            </button>
-            <button
-              aria-label="ปิดแชท"
-              className="grid size-8 place-items-center rounded-lg transition-colors hover:bg-white/20"
+            <Button
+              aria-label="ปิดหน้าต่างแชท"
               onClick={() => setOpen(false)}
-              type="button"
+              size="icon"
+              variant="ghost"
             >
-              <X className="size-4" />
-            </button>
-          </div>
+              <X aria-hidden="true" />
+            </Button>
+          </header>
 
-          {/* ข้อความ */}
           <div
-            aria-live="polite"
-            className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
-            ref={scrollRef}
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4"
+            onPaste={onPaste}
           >
-            {messages.map((m) => (
+            {!authChecked ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                กำลังตรวจสอบ Puter login...
+              </div>
+            ) : null}
+            {messages.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card/60 p-4 text-sm leading-6 text-muted-foreground">
+                <p className="font-medium text-foreground">คุยกับ SILELO Agent ได้ทันที</p>
+                <p className="mt-1">
+                  ใช้โปรไฟล์กลางของ SILELO ผ่าน Puter AI และแนบไฟล์เข้า workspace ได้
+                </p>
+              </div>
+            ) : null}
+            {messages.map((message, index) => (
               <div
                 className={cn(
-                  "flex max-w-[85%]",
-                  m.role === "user" ? "ml-auto justify-end" : "justify-start"
+                  "flex items-start gap-2",
+                  message.role === "user" && "justify-end",
                 )}
-                key={m.id}
+                key={`${message.role}-${index}`}
               >
+                {message.role !== "user" ? (
+                  <span className="grid size-7 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <Bot aria-hidden="true" className="size-4" />
+                  </span>
+                ) : null}
                 <div
                   className={cn(
-                    "whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[14px] leading-relaxed",
-                    m.role === "user"
-                      ? "rounded-br-sm bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]"
-                      : "rounded-bl-sm bg-neutral-100 text-neutral-800 dark:bg-white/5 dark:text-neutral-200"
+                    "max-w-[82%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-6",
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground",
                   )}
                 >
-                  {m.content}
+                  {message.content}
                 </div>
+                {message.role === "user" ? (
+                  <span className="grid size-7 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+                    <User aria-hidden="true" className="size-4" />
+                  </span>
+                ) : null}
               </div>
             ))}
-            {loading ? (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-neutral-100 px-3.5 py-2 text-[14px] text-neutral-500 dark:bg-white/5 dark:text-neutral-400">
-                  <Loader2 className="size-4 animate-spin" />
-                  กำลังคิด...
-                </div>
+            {isTyping ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                SILELO Agent กำลังคิดจาก Puter...
               </div>
             ) : null}
-            {error ? (
-              <p className="text-[13px] text-red-500 dark:text-red-400">
-                {error}
-              </p>
-            ) : null}
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* ช่องพิมพ์ */}
-          {signedIn ? (
-            <form
-              className="flex items-center gap-2 border-t border-[#e5e5e5] px-3 py-3 dark:border-white/10"
-              onSubmit={(e) => {
-                e.preventDefault();
-                send();
-              }}
-            >
-              <input
-                aria-label="พิมพ์ข้อความ"
-                className="h-10 flex-1 rounded-lg border border-[#e5e5e5] bg-transparent px-3 text-[14px] text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400 dark:border-white/15 dark:text-neutral-100 dark:focus:border-white/30"
-                disabled={loading}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="พิมพ์ข้อความ..."
-                value={input}
+          {error ? (
+            <div className="border-t border-border px-4 py-2 text-xs text-destructive" role="alert">
+              {error}
+            </div>
+          ) : null}
+          {notice ? (
+            <div className="border-t border-border px-4 py-2 text-xs text-muted-foreground" role="status">
+              {notice}
+            </div>
+          ) : null}
+          <AttachmentQueue
+            compact
+            items={attachmentItems}
+            onCancel={remove}
+            onRemove={remove}
+            onRetry={retry}
+          />
+          <form
+            className="border-t border-border p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void sendMessage();
+            }}
+          >
+            <input
+              accept="*/*"
+              className="sr-only"
+              multiple
+              onChange={onInputChange}
+              ref={fileInputRef}
+              type="file"
+            />
+            <div className="flex items-center gap-1 rounded-2xl border border-input bg-card p-1">
+              <AttachmentPickerButton disabled={isTyping} onClick={openPicker} />
+              <Input
+                aria-label="พิมพ์ข้อความถึง SILELO Agent"
+                className="h-10 border-0 bg-transparent px-2 shadow-none focus-visible:ring-0"
+                disabled={isTyping}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="ถาม SILELO Agent..."
+                value={draft}
               />
-              <button
+              <Button
                 aria-label="ส่งข้อความ"
-                className="grid size-10 shrink-0 place-items-center rounded-lg text-[#01030a] transition-opacity hover:opacity-85 disabled:opacity-40"
-                disabled={loading || !input.trim()}
-                style={{ backgroundImage: GRADIENT }}
+                disabled={(!draft.trim() && uploadedAttachments.length === 0) || isTyping || attachmentsBusy}
+                size="icon"
                 type="submit"
               >
-                <Send className="size-4" />
-              </button>
-            </form>
-          ) : (
-            <div className="border-t border-[#e5e5e5] px-4 py-3 dark:border-white/10">
-              <Link
-                className="block w-full rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-center text-[14px] font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-[#0a0a0a]"
-                href="/login"
-              >
-                เข้าสู่ระบบด้วย Puter
-              </Link>
+                <Send aria-hidden="true" />
+              </Button>
             </div>
-          )}
-        </div>
-      ) : null}
-    </>
+            <p className="mt-2 flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+              <Paperclip aria-hidden="true" className="size-3" />
+              <FileText aria-hidden="true" className="size-3" />
+              {pathname === "/rooms" ? "ใช้ workspace ของห้องแชทด้านหลัง" : "แนบไฟล์เข้า workspace ได้"}
+            </p>
+          </form>
+        </section>
+      ) : (
+        <Button
+          aria-expanded={open}
+          aria-label="เปิด SILELO Agent"
+          className="size-14 rounded-2xl shadow-xl shadow-primary/20"
+          onClick={() => setOpen(true)}
+          size="icon"
+        >
+          <MessageCircle aria-hidden="true" className="size-6" />
+        </Button>
+      )}
+    </div>
   );
 }
