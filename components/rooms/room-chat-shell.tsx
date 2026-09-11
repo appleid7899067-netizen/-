@@ -112,7 +112,7 @@ export function RoomChatShell() {
 
     const roomId = activeRoom.id
     const clientId = crypto.randomUUID()
-    const userMessage: Omit<RoomMessage, "id" | "created_at"> = { room_id: roomId, sender_id: userId ?? null, client_id: clientId, author: "คุ���", initials: "ค", role: "user", text: text.trim() }
+    const userMessage: Omit<RoomMessage, "id" | "created_at"> = { room_id: roomId, sender_id: userId ?? undefined, client_id: clientId, author: "คุ���", initials: "ค", role: "user", text: text.trim() }
     const history = [...activeMessages, { ...userMessage, id: `optimistic-${clientId}`, created_at: new Date().toISOString() } as RoomMessage]
     setSending(true); setRoomError(null); setTyping(true)
     setMessagesByRoom((current) => ({ ...current, [roomId]: history }))
@@ -120,8 +120,8 @@ export function RoomChatShell() {
     await channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId: userId ?? `guest-${clientId}`, isTyping: true } })
     try {
       await insertMessage(userMessage)
-      const responseText = await streamPuterChat(withAgentProfile(toAgentMessages(history)), (partial) => setMessagesByRoom((current) => ({ ...current, [roomId]: [...current[roomId].filter((message) => !message.id.startsWith("assistant-")), { id: `assistant-${clientId}`, room_id: roomId, sender_id: userId, author: activeRoom.name, initials: initialsFor(activeRoom.label), role: "assistant", text: partial, created_at: new Date().toISOString() }] })))
-      await insertMessage({ room_id: roomId, sender_id: userId, client_id: `assistant-${clientId}`, author: activeRoom.name, initials: initialsFor(activeRoom.label), role: "assistant", text: responseText })
+      const responseText = await streamPuterChat(withAgentProfile(toAgentMessages(history)), (partial) => setMessagesByRoom((current) => ({ ...current, [roomId]: [...current[roomId].filter((message) => !message.id.startsWith("assistant-")), { id: `assistant-${clientId}`, room_id: roomId, sender_id: userId ?? undefined, author: activeRoom.name, initials: initialsFor(activeRoom.label), role: "assistant", text: partial, created_at: new Date().toISOString() }] })))
+      await insertMessage({ room_id: roomId, sender_id: userId ?? undefined, client_id: `assistant-${clientId}`, author: activeRoom.name, initials: initialsFor(activeRoom.label), role: "assistant", text: responseText })
     } catch (error) { setMessagesByRoom((current) => ({ ...current, [roomId]: current[roomId].filter((message) => message.client_id !== clientId && !message.id.startsWith(`assistant-${clientId}`)) })); setRoomError(error instanceof Error ? error.message : "ส่งข้อความไม่สำเร็จ") }
     finally { setSending(false); setTyping(false); await channelRef.current?.send({ type: "broadcast", event: "typing", payload: { userId: userId ?? `guest-${clientId}`, isTyping: false } }) }
   }
