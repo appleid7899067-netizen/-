@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { RoomChatShell } from "@/components/rooms/room-chat-shell";
 
 export const metadata: Metadata = {
-  description: "ห้องแชท live ของ SILELO Agent พร้อม Puter AI, ไฟล์แนบ และ sandbox runtime",
-  title: "Live rooms — SILELO",
+  description: "ห้องแชท live ของ SILELO Agent สำหรับคุยแบบเรียลไทม์ใน 3 ห้อง",
+  title: "ห้องแชท live — SILELO",
 };
 
 export default function RoomsPage() {
