@@ -59,7 +59,7 @@ const ITEMS: ShowcaseItem[] = [
     variant: "dashboard",
   },
   {
-    caption: "SILELO EYE · สถานะระบบ",
+    caption: "TEMPLATE OS · สถานะระบบ",
     categories: ["dashboard"],
     tag: "Cron",
     variant: "status",

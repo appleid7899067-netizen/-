@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import Script from 'next/script'
-import { Noto_Sans_Thai } from 'next/font/google'
+import { Geist_Mono, Noto_Sans_Thai } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
@@ -10,10 +10,15 @@ const noto = Noto_Sans_Thai({
   variable: '--font-noto',
 })
 
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+})
+
 export const metadata: Metadata = {
-  title: 'SILELO — สร้างเว็บแอปจริงจากไอเดีย',
+  title: 'TEMPLATE OS — ระบบปฏิบัติการเทมเพลตชั้นนำ',
   description:
-    'SILELO คือแพลตฟอร์มที่เปลี่ยนไอเดียของคุณให้เป็นเว็บแอปจริง เริ่มจากพรอมต์เดียว ใช้ AI เลือกโมเดลฟรีอัตโนมัติ และล็อกอินด้วย Puter ได้ทันที',
+    'TEMPLATE OS คือระบบปฏิบัติการเทมเพลตชั้นนำสำหรับเลือก ปรับ และส่งต่อเว็บที่พร้อมทำงานใน workspace เดียว',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -35,11 +40,9 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fbfcfb' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d1117' },
-  ],
+  colorScheme: 'dark',
+  themeColor: '#121b15',
+  userScalable: false,
 }
 
 export default function RootLayout({
@@ -48,12 +51,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="th" className="bg-background" suppressHydrationWarning>
-      <body className={`${noto.variable} font-sans antialiased`}>
+    <html lang="th" className="dark bg-background" suppressHydrationWarning>
+      <body className={`${noto.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}

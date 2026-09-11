@@ -189,5 +189,5 @@ websocketServer.on("connection", (client, _request, roomId) => {
 });
 
 server.listen(port, () => {
-  console.log(`SILELO room gateway listening on :${port}`);
+  console.log(`TEMPLATE OS room gateway listening on :${port}`);
 });

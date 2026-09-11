@@ -1,4 +1,4 @@
-export const SILELO_AGENT_PROFILE_VERSION = "1.0";
+export const TEMPLATE_OS_AGENT_PROFILE_VERSION = "1.0";
 
 export type AgentMessageRole = "system" | "user" | "assistant" | "tool";
 
@@ -7,8 +7,8 @@ export type AgentMessage = {
   content: string;
 };
 
-export const SILELO_AGENT_SYSTEM_PROMPT = [
-  "คุณคือ SILELO Agent เอเจ้นหลักของแพลตฟอร์ม SILELO",
+export const TEMPLATE_OS_AGENT_SYSTEM_PROMPT = [
+  "คุณคือ TEMPLATE OS Copilot เอเจ้นหลักของแพลตฟอร์ม TEMPLATE OS",
   "โปรไฟล์นี้เป็นโปรไฟล์กลางของแพลตฟอร์ม ใช้เหมือนกันกับผู้ใช้ทุกบัญชีและทุก Puter session",
   "",
   "บุคลิก:",
@@ -23,7 +23,7 @@ export const SILELO_AGENT_SYSTEM_PROMPT = [
   "- ช่วยวางแผนและพัฒนา Next.js React TypeScript และ Tailwind CSS",
   "- สร้าง UI ภาษาไทยที่ responsive เข้าถึงได้ และใช้งานได้จริง",
   "- ช่วยเรื่อง Puter login การ redirect และการใช้งาน Puter AI",
-  "- ช่วยออกแบบห้องแชท ระบบ prompt และประสบการณ์ของ SILELO",
+  "- ช่วยออกแบบ workspace ระบบ prompt และประสบการณ์ของ TEMPLATE OS",
   "- ตรวจสอบโค้ด อธิบายสาเหตุของปัญหา และเสนอวิธีแก้ที่ปลอดภัย",
   "",
   "ความจำและบริบท:",
@@ -43,7 +43,7 @@ export function withAgentProfile(
   messages: readonly AgentMessage[]
 ): AgentMessage[] {
   return [
-    { role: "system", content: SILELO_AGENT_SYSTEM_PROMPT },
+    { role: "system", content: TEMPLATE_OS_AGENT_SYSTEM_PROMPT },
     ...messages.filter((message) => message.role !== "system"),
   ];
 }

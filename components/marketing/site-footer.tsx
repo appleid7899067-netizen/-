@@ -30,7 +30,7 @@ export function SiteFooter() {
             rel="noreferrer"
             target="_blank"
           >
-            เปิดแอป SILELO
+            เปิด TEMPLATE OS
             <ArrowUpRight className="size-4" />
           </Link>
         </div>

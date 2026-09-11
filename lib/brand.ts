@@ -1,55 +1,45 @@
 /**
- * SILELO brand identity.
- *
- * ทุกอย่างที่ระบุตัวตนของแบรนด์ (ชื่อ, สี, ลิงก์) รวมอยู่ที่ไฟล์นี้ไฟล์เดียว
- * หน้า /home จะเปลี่ยนตามทันทีโดยไม่ต้องแก้คอมโพเนนต์
- *
- * ค่าอ้างอิงจากเรพ SILELO Neo-Connect (public/manifest.json):
- * theme_color #00e5ff · background_color #01030a · ไฮไลต์หลักในแอป #ff2d95 / #a78bfa
+ * TEMPLATE OS brand identity and product navigation.
  */
 export const brand = {
-  accent: "#00e5ff",
-  accentAlt: "#ff2d95",
-  accentViolet: "#a78bfa",
-  appUrl: "https://silelo.onrender.com",
+  accent: "#c9f27a",
+  accentAlt: "#e7a86b",
+  accentViolet: "#9da8a0",
+  appUrl: "https://template-os.app",
   description:
-    "SILELO Neo-Connect — ผู้ช่วยส่วนตัว 3 ห้อง (SLI / WORK / LAB) ใช้ได้ทุกที่",
+    "TEMPLATE OS — ระบบปฏิบัติการเทมเพลตชั้นนำสำหรับเลือก ปรับ และส่งต่อเว็บที่พร้อมทำงาน",
   githubUrl:
-    "https://github.com/phanuphanthcanthrsngsaeng6-hue/silelo-neo-connect",
-  name: "SILELO",
+    "https://github.com/phanuphanthcanthrsngsaeng6-hue/template-os",
+  name: "TEMPLATE OS",
 } as const;
 
 export const marketingNav = [
   { href: "#templates", label: "เทมเพลต" },
-  { href: "#features", label: "ความสามารถ" },
-  { href: "#rooms", label: "3 ห้องแชท" },
-  { href: "#community", label: "ผลงาน" },
+  { href: "#workflow", label: "วิธีทำงาน" },
+  { href: "#community", label: "ชุมชน" },
 ] as const;
 
-/**
- * 3 ห้องของ SILELO — ใช้เป็นแถบแบรนด์ใต้ส่วนความสามารถ
- */
 export const rooms = [
   {
     accent: brand.accent,
-    description: "คุยกับสลี่เรื่องส่วนตัว ปรับโทนให้ตรงใจ",
-    label: "SLI",
-    name: "ห้องส่วนตัว",
-    url: `${brand.appUrl}/chat?room=private`,
+    description: "คุยกับ copilot เพื่อเปลี่ยน brief ให้เป็นระบบที่เริ่มต่อได้",
+    label: "START",
+    name: "ห้องเริ่มต้น",
+    url: "/rooms?room=sli",
   },
   {
     accent: brand.accentViolet,
-    description: "โค้ด วางแผน สรุปงาน — ผู้ช่วยทำงานของทีม",
-    label: "WORK",
-    name: "ห้องทำงาน",
-    url: `${brand.appUrl}/chat?room=work`,
+    description: "วางโครง สรุปงาน และส่งต่อแนวคิดให้ทีมในที่เดียว",
+    label: "BUILD",
+    name: "ห้องสร้างระบบ",
+    url: "/rooms?room=work",
   },
   {
     accent: brand.accentAlt,
-    description: "นักประดิษฐ์ & นักทดลอง ทดลองของใหม่ได้ไม่จำกัด",
+    description: "ทดลองแนวทางใหม่กับพื้นที่ที่เปิดให้คิดและทดสอบเร็ว",
     label: "LAB",
-    name: "ห้องแล็บ",
-    url: `${brand.appUrl}/chat?room=lab`,
+    name: "ห้องทดลอง",
+    url: "/rooms?room=lab",
   },
 ] as const;
 
@@ -57,38 +47,25 @@ export const footerColumns = [
   {
     links: [
       { external: false, href: "/home", label: "หน้าแรก" },
-      { external: false, href: "#features", label: "ความสามารถ" },
       { external: false, href: "#templates", label: "เทมเพลต" },
-      { external: false, href: "/", label: "บิลเดอร์" },
+      { external: false, href: "#workflow", label: "วิธีทำงาน" },
+      { external: false, href: "/rooms", label: "workspace" },
     ],
     title: "ผลิตภัณฑ์",
   },
   {
     links: [
-      { external: true, href: brand.appUrl, label: "เปิดแอปจริง (PWA)" },
       { external: false, href: "/login", label: "เข้าสู่ระบบ" },
       { external: false, href: "/register", label: "สมัครฟรี" },
-      {
-        external: true,
-        href: `${brand.appUrl}/chat?room=lab`,
-        label: "ห้อง LAB",
-      },
+      { external: false, href: "/rooms?room=lab", label: "เปิดห้องทดลอง" },
     ],
     title: "เริ่มใช้งาน",
   },
   {
     links: [
       { external: true, href: brand.githubUrl, label: "โค้ดบน GitHub" },
-      {
-        external: true,
-        href: `${brand.githubUrl}/blob/main/public/manifest.json`,
-        label: "สเปก PWA",
-      },
-      {
-        external: true,
-        href: `${brand.appUrl}/sw.js`,
-        label: "Service Worker",
-      },
+      { external: false, href: "/home#community", label: "community notes" },
+      { external: false, href: "/home#workflow", label: "ระบบการทำงาน" },
     ],
     title: "ทรัพยากร",
   },

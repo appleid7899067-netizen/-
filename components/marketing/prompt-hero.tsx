@@ -25,7 +25,7 @@ import { brand } from "@/lib/brand";
 
 type Suggestion = { icon: LucideIcon; label: string };
 
-const MODEL_OPTIONS = ["SILELO Max", "SILELO Fast", "SLI Flash"] as const;
+const MODEL_OPTIONS = ["OS Core", "OS Fast", "OS Studio"] as const;
 
 const SUGGESTION_SETS: Suggestion[][] = [
   [
@@ -117,12 +117,12 @@ export function PromptHero() {
       <h1 className="mx-auto mt-5 max-w-[16ch] text-balance font-semibold text-[34px] leading-[1.1] tracking-[-0.04em] text-neutral-950 sm:text-[44px] sm:leading-[1.05] dark:text-neutral-50">
         อยากสร้างอะไรครับ?{" "}
         <span className="bg-gradient-to-r from-[#00e5ff] via-[#a78bfa] to-[#ff2d95] bg-clip-text text-transparent">
-          บอก SILELO
+          บอก TEMPLATE OS
         </span>
       </h1>
 
       <p className="mx-auto mt-4 max-w-[46ch] text-pretty text-[15px] leading-relaxed text-neutral-500 sm:text-[16px] dark:text-neutral-400">
-        พิมพ์ไอเดียของคุณ แล้ว SILELO จะสร้างเว็บแอปที่ใช้งานได้จริง พร้อมโค้ด
+        พิมพ์ไอเดียของคุณ แล้ว TEMPLATE OS จะช่วยวางระบบเว็บที่ใช้งานได้จริง พร้อมโค้ด
         ดีไซน์ และการเผยแพร่ในที่เดียว
       </p>
 
@@ -134,11 +134,11 @@ export function PromptHero() {
         />
         <div className="relative rounded-2xl bg-white p-4 text-left shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:bg-[#0d0d0d]">
           <textarea
-            aria-label="บอก SILELO ว่าอยากสร้างอะไร"
+            aria-label="บอก TEMPLATE OS ว่าอยากสร้างอะไร"
             className="h-[56px] w-full resize-none bg-transparent text-[15px] text-neutral-900 leading-6 outline-none placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             onChange={handlePromptChange}
             onKeyDown={handleKeyDown}
-            placeholder="บอก SILELO ว่าอยากสร้างอะไร…"
+            placeholder="บอก TEMPLATE OS ว่าอยากสร้างอะไร…"
             value={prompt}
           />
 

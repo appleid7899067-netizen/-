@@ -8,9 +8,9 @@ export default function RegisterPage() {
     <main className="flex min-h-dvh items-center justify-center bg-white px-5 text-neutral-950 dark:bg-[#0a0a0a] dark:text-white">
       <section className="w-full max-w-md rounded-2xl border border-neutral-200 p-7 shadow-sm dark:border-white/10">
         <div className="mb-7 text-center">
-          <p className="text-sm font-medium text-cyan-500">SILELO</p>
+          <p className="text-sm font-medium text-primary">TEMPLATE OS</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">สมัครฟรี</h1>
-          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">สร้างบัญชี Puter ใหม่ได้ทันที แล้วใช้เป็นบัญชี SILELO</p>
+          <p className="mt-2 text-sm text-muted-foreground">สร้างบัญชี Puter ใหม่ได้ทันที แล้วใช้เป็นบัญชี TEMPLATE OS</p>
         </div>
         <PuterLogin />
         <p className="mt-5 text-center text-xs text-neutral-500 dark:text-neutral-400">

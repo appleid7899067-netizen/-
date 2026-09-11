@@ -94,7 +94,7 @@ export function ChatWidget() {
     const text = draft.trim();
     if ((!text && uploadedAttachments.length === 0) || isTyping || attachmentsBusy) return;
     if (!isAuthenticated) {
-      setError("เข้าสู่ระบบ Puter ก่อนเริ่มคุยกับ SILELO Agent");
+      setError("เข้าสู่ระบบ Puter ก่อนเริ่มคุยกับ TEMPLATE OS Copilot");
       return;
     }
 
@@ -143,7 +143,7 @@ export function ChatWidget() {
     <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
       {open ? (
         <section
-          aria-label="SILELO Agent chat"
+          aria-label="TEMPLATE OS Copilot chat"
           className="flex h-[min(680px,calc(100dvh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-border bg-background/95 shadow-2xl shadow-black/30 backdrop-blur-xl"
         >
           <header className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -152,7 +152,7 @@ export function ChatWidget() {
                 <Sparkles aria-hidden="true" className="size-4" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">SILELO Agent</p>
+                <p className="truncate text-sm font-semibold">TEMPLATE OS Copilot</p>
                 <p className="text-xs text-muted-foreground">
                   {isAuthenticated ? "Puter พร้อมใช้งาน" : "ต้องเข้าสู่ระบบ Puter"}
                 </p>
@@ -180,9 +180,9 @@ export function ChatWidget() {
             ) : null}
             {messages.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-card/60 p-4 text-sm leading-6 text-muted-foreground">
-                <p className="font-medium text-foreground">คุยกับ SILELO Agent ได้ทันที</p>
+                <p className="font-medium text-foreground">คุยกับ TEMPLATE OS Copilot ได้ทันที</p>
                 <p className="mt-1">
-                  ใช้โปรไฟล์กลางของ SILELO ผ่าน Puter AI และแนบไฟล์เข้า workspace ได้
+                  ใช้โปรไฟล์กลางของ TEMPLATE OS ผ่าน Puter AI และแนบไฟล์เข้า workspace ได้
                 </p>
               </div>
             ) : null}
@@ -219,7 +219,7 @@ export function ChatWidget() {
             {isTyping ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                SILELO Agent กำลังคิดจาก Puter...
+                TEMPLATE OS Copilot กำลังคิดจาก Puter...
               </div>
             ) : null}
             <div ref={messagesEndRef} />
@@ -260,12 +260,12 @@ export function ChatWidget() {
             <div className="flex items-center gap-1 rounded-2xl border border-input bg-card p-1">
               <AttachmentPickerButton disabled={isTyping} onClick={openPicker} />
               <Input
-                aria-label="พิมพ์ข้อความถึง SILELO Agent"
+                aria-label="พิมพ์ข้อความถึง TEMPLATE OS Copilot"
                 className="h-10 border-0 bg-transparent px-2 shadow-none focus-visible:ring-0"
                 disabled={isTyping}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="ถาม SILELO Agent..."
+                placeholder="ถาม TEMPLATE OS Copilot..."
                 value={draft}
               />
               <Button
@@ -287,7 +287,7 @@ export function ChatWidget() {
       ) : (
         <Button
           aria-expanded={open}
-          aria-label="เปิด SILELO Agent"
+          aria-label="เปิด TEMPLATE OS Copilot"
           className="size-14 rounded-2xl shadow-xl shadow-primary/20"
           onClick={() => setOpen(true)}
           size="icon"

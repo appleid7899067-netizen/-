@@ -19,7 +19,7 @@ const ITEMS: CommunityItem[] = [
     accent: "#00e5ff",
     caption: "ห้องแชท 3 ห้อง SLI / WORK / LAB",
     likes: "720",
-    owner: "silelo",
+    owner: "templateos",
     variant: "chat",
     views: "7.5K",
   },
@@ -41,7 +41,7 @@ const ITEMS: CommunityItem[] = [
   },
   {
     accent: "#ff8c42",
-    caption: "SILELO EYE · สถานะระบบ",
+    caption: "TEMPLATE OS · สถานะระบบ",
     likes: "264",
     owner: "eye",
     variant: "status",
@@ -55,7 +55,7 @@ export function CommunityRow() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="font-semibold text-[24px] tracking-[-0.02em] sm:text-[28px]">
           ผลงานที่สร้างด้วย {" "}
-          SILELO
+          TEMPLATE OS
         </h2>
         <Link
           className="inline-flex items-center text-[14px] text-neutral-600 transition-colors hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-neutral-50"

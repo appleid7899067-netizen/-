@@ -279,5 +279,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, () => {
-  console.log(`SILELO sandbox runner listening on :${port}`);
+  console.log(`TEMPLATE OS sandbox runner listening on :${port}`);
 });
