@@ -1,12 +1,7 @@
-import type { Metadata } from "next";
-import EveChatShell from "@/components/eve-chat-shell";
-import "@/components/eve-chat-shell.css";
+import EveChatRoom from "@/components/eve-chat-room"
 
-export const metadata: Metadata = {
-  description: "EVE chat workspace",
-  title: "EVE — ห้องแชท",
-};
+export const dynamic = "force-dynamic"
 
 export default function RoomsPage() {
-  return <EveChatShell />;
+  return <EveChatRoom />
 }
