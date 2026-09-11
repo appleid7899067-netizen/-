@@ -1,15 +1,18 @@
 import { Analytics } from '@vercel/analytics/next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Noto_Sans_Thai } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
+import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
-const geistSans = Geist({ subsets: ['latin'] })
-const geistMono = Geist_Mono({ subsets: ['latin'] })
+const noto = Noto_Sans_Thai({
+  subsets: ['latin', 'thai'],
+  variable: '--font-sans',
+})
 
 export const metadata: Metadata = {
-  title: 'Compound Interest Calculator',
+  title: 'SILELO — สร้างเว็บแอปจริงจากไอเดีย',
   description:
-    'See how your savings grow over time. Adjust your initial amount, monthly contributions, interest rate, and time horizon to visualize contributions vs. growth.',
+    'SILELO คือแพลตฟอร์มที่เปลี่ยนไอเดียของคุณให้เป็นเว็บแอปจริง เริ่มจากพรอมต์เดียว ใช้ AI เลือกโมเดลฟรีอัตโนมัติ และล็อกอินด้วย Puter ได้ทันที',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -44,11 +47,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
-      <body
-        className={`${geistSans.className} ${geistMono.className} antialiased`}
-      >
-        {children}
+    <html lang="th" className="bg-background" suppressHydrationWarning>
+      <body className={`${noto.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
