@@ -27,6 +27,9 @@ export function PuterLogin() {
     try {
       if (!window.puter?.auth) throw new Error("Puter ยังโหลดไม่เสร็จ");
       await window.puter.auth.signIn();
+      // รอให้ Puter ยืนยันสถานะล็อกอินจริงก่อนเด้งกลับเข้าแอป
+      const confirmed = await waitForSignedIn(5000);
+      if (!confirmed) throw new Error("ยังไม่สามารถยืนยันการเข้าสู่ระบบได้");
       router.replace("/home");
       router.refresh();
     } catch (err) {
@@ -35,6 +38,18 @@ export function PuterLogin() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function waitForSignedIn(timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const check = () => {
+        if (window.puter?.auth?.isSignedIn()) return resolve(true);
+        if (Date.now() - started >= timeoutMs) return resolve(false);
+        window.setTimeout(check, 150);
+      };
+      check();
+    });
   }
 
   return (
