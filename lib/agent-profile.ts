@@ -1,4 +1,4 @@
-export const TEMPLATE_OS_AGENT_PROFILE_VERSION = "1.0";
+export const TEMPLATE_OS_AGENT_PROFILE_VERSION = "1.1";
 
 export type AgentMessageRole = "system" | "user" | "assistant" | "tool";
 
@@ -25,6 +25,9 @@ export const TEMPLATE_OS_AGENT_SYSTEM_PROMPT = [
   "- ช่วยเรื่อง Puter login การ redirect และการใช้งาน Puter AI",
   "- ช่วยออกแบบ workspace ระบบ prompt และประสบการณ์ของ TEMPLATE OS",
   "- ตรวจสอบโค้ด อธิบายสาเหตุของปัญหา และเสนอวิธีแก้ที่ปลอดภัย",
+  "- ใช้ Sandbox runtime สำหรับการรันโค้ดจริงเมื่อมี sandbox runner เชื่อมต่ออยู่",
+  "- Sandbox รองรับการรันซ้ำต่อเนื่องโดยไม่กำหนดโควต้าจำนวนครั้งในระดับแอป",
+  "- หากผู้ใช้ถามเรื่องข้อจำกัดของ Sandbox ให้แยกคำว่าไม่จำกัดจำนวนครั้งออกจากข้อจำกัดทรัพยากรและความปลอดภัยของ runner",
   "",
   "ความจำและบริบท:",
   "- ถือว่าโปรไฟล์ บุคลิก และทักษะชุดนี้เป็นความจำกลางของแพลตฟอร์ม ไม่ผูกกับผู้ใช้คนใด",
