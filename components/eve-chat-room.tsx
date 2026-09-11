@@ -1,15 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowUp, CheckCircle2, Loader2, Menu, Paperclip, Plug, ChevronDown, LogIn, X } from "lucide-react"
 
 type Message = { role: "user" | "assistant"; text: string }
-type FreeModel = {
-  id: string
-  name?: string
-  provider?: string
-  cost?: { input?: number; output?: number }
-}
 
 type PuterAuth = {
   isSignedIn: () => boolean | Promise<boolean>
@@ -17,9 +11,8 @@ type PuterAuth = {
 }
 
 type PuterAI = {
-  listModels: (provider?: string) => Promise<FreeModel[]>
   chat: (
-    messages: { role: "user" | "assistant" | "system"; content: string }[],
+    messages: { role: "user" | "assistant"; content: string }[],
     options: { model: string; stream?: boolean },
   ) => Promise<unknown> | AsyncIterable<unknown>
 }
@@ -31,6 +24,8 @@ declare global {
     puter?: PuterClient
   }
 }
+
+const DEEPSEEK_MODEL = "deepseek/deepseek-v4.1-flash"
 
 function chunkText(chunk: unknown) {
   if (typeof chunk === "string") return chunk
@@ -48,15 +43,6 @@ function chunkText(chunk: unknown) {
   return ""
 }
 
-function isFreeModel(model: FreeModel) {
-  return Number(model.cost?.input ?? -1) === 0 && Number(model.cost?.output ?? -1) === 0
-}
-
-function isDeepSeekModel(model: FreeModel) {
-  const haystack = `${model.id} ${model.name ?? ""} ${model.provider ?? ""}`.toLowerCase()
-  return haystack.includes("deepseek") || String(model.provider ?? "").toLowerCase() === "deepseek"
-}
-
 export default function EveChatRoom() {
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
@@ -65,13 +51,6 @@ export default function EveChatRoom() {
   const [signedIn, setSignedIn] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [signingIn, setSigningIn] = useState(false)
-  const [freeModels, setFreeModels] = useState<FreeModel[]>([])
-  const [modelId, setModelId] = useState("")
-
-  const selectedModel = useMemo(
-    () => freeModels.find((model) => model.id === modelId) ?? freeModels[0],
-    [freeModels, modelId],
-  )
 
   useEffect(() => {
     let cancelled = false
@@ -94,43 +73,12 @@ export default function EveChatRoom() {
       }
     }
     check()
-    const timer = window.setTimeout(check, 700)
+    const timer = window.setTimeout(check, 1000)
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
   }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    const loadDeepSeekFreeModels = async () => {
-      if (!window.puter) return
-      try {
-        // Ask Puter specifically for DeepSeek models, then keep only zero-cost models.
-        const providerModels = await window.puter.ai.listModels("deepseek")
-        const deepSeekFree = providerModels.filter((model) => isDeepSeekModel(model) && isFreeModel(model))
-
-        // Some Puter deployments may not accept a provider filter, so fall back to the full list.
-        let free = deepSeekFree
-        if (free.length === 0) {
-          const allModels = await window.puter.ai.listModels()
-          free = allModels.filter((model) => isDeepSeekModel(model) && isFreeModel(model))
-        }
-
-        if (!cancelled) {
-          setFreeModels(free)
-          setModelId((current) => current || free[0]?.id || "")
-          if (free.length === 0) setError("ไม่พบโมเดล DeepSeek ฟรีใน Puter ตอนนี้")
-        }
-      } catch {
-        if (!cancelled) setError("โหลดโมเดล DeepSeek ฟรีไม่สำเร็จ")
-      }
-    }
-    loadDeepSeekFreeModels()
-    return () => {
-      cancelled = true
-    }
-  }, [signedIn])
 
   async function signIn() {
     if (signingIn) return
@@ -156,10 +104,6 @@ export default function EveChatRoom() {
       setError("กรุณาเข้าสู่ระบบ Puter ก่อนส่งข้อความ")
       return
     }
-    if (!selectedModel) {
-      setError("ไม่พบโมเดล DeepSeek ฟรีที่พร้อมใช้งานใน Puter")
-      return
-    }
 
     setError("")
     setDraft("")
@@ -171,7 +115,7 @@ export default function EveChatRoom() {
       if (!window.puter) throw new Error("ไม่พบ Puter SDK")
       const result = await window.puter.ai.chat(
         next.map((message) => ({ role: message.role, content: message.text })),
-        { model: selectedModel.id, stream: true },
+        { model: DEEPSEEK_MODEL, stream: true },
       )
 
       let reply = ""
@@ -195,7 +139,9 @@ export default function EveChatRoom() {
           const choices = response.choices
           if (Array.isArray(choices) && choices[0] && typeof choices[0] === "object") {
             const message = (choices[0] as Record<string, unknown>).message
-            if (message && typeof message === "object") reply = String((message as Record<string, unknown>).content ?? "")
+            if (message && typeof message === "object") {
+              reply = String((message as Record<string, unknown>).content ?? "")
+            }
           }
         }
         if (reply) setMessages((current) => [...current, { role: "assistant", text: reply }])
@@ -226,7 +172,7 @@ export default function EveChatRoom() {
       <div className="flex items-center justify-center gap-2 border-b border-white/5 px-4 py-2 text-xs text-white/55">
         {signedIn ? <CheckCircle2 size={14} className="text-lime-300" /> : <span className="size-2 rounded-full bg-white/30" />}
         <span>{signedIn ? "Puter พร้อมใช้งาน" : "ต้องเข้าสู่ระบบ Puter"}</span>
-        {selectedModel && <span className="rounded-full bg-lime-300/10 px-2 py-0.5 text-lime-200">DeepSeek ฟรี · {selectedModel.name || selectedModel.id}</span>}
+        <span className="rounded-full bg-lime-300/10 px-2 py-0.5 text-lime-200">DeepSeek ฟรี · V4.1 Flash</span>
       </div>
 
       <section className="flex-1 overflow-y-auto px-4 py-6">
@@ -236,7 +182,7 @@ export default function EveChatRoom() {
               <div className="flex items-center gap-1 text-5xl font-bold tracking-[-0.18em] text-lime-200/90"><span>≡</span><span className="font-light italic">/</span><span>≡</span></div>
               <div className="text-center">
                 <h1 className="text-xl font-semibold">ถาม TEMPLATE OS Copilot</h1>
-                <p className="mt-2 text-sm text-white/40">ใช้ DeepSeek เฉพาะโมเดลฟรีจาก Puter</p>
+                <p className="mt-2 text-sm text-white/40">ใช้ DeepSeek V4.1 Flash ผ่าน Puter</p>
               </div>
             </div>
           ) : (
@@ -288,7 +234,7 @@ export default function EveChatRoom() {
               </button>
             </div>
           </form>
-          <p className="mt-2 text-center text-[11px] text-white/25">Enter เพื่อส่ง · Shift + Enter ขึ้นบรรทัดใหม่ · DeepSeek ฟรีเท่านั้น</p>
+          <p className="mt-2 text-center text-[11px] text-white/25">Enter เพื่อส่ง · Shift + Enter ขึ้นบรรทัดใหม่ · DeepSeek ฟรีผ่าน Puter</p>
         </div>
       </div>
     </main>
