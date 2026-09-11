@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+import { withEve } from "eve/next"
+
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -8,4 +10,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withEve(nextConfig)
