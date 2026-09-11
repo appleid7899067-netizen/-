@@ -58,7 +58,7 @@ function isInternalDebugMessage(text: string) {
 
 function friendlyError(error: unknown, fallback: string) {
   if (error instanceof Error && /auth|login|sign.?in|puter/i.test(error.message)) {
-    return "เข้าสู่ระบบ Puter ก่อนเริ่มแชท"
+    return "เข้าสู่ระบบ Puter ก่อนเริ่มใช้งาน workspace"
   }
   return fallback
 }
@@ -291,7 +291,7 @@ export function RoomChatShell() {
     const text = draft.trim()
     if (!text || sending) return
     if (!puterSignedIn) {
-      setRoomError("เข้าสู่ระบบ Puter ก่อนเริ่มแชท")
+      setRoomError("เข้าสู่ระบบ Puter ก่อนเริ่มใช้งาน workspace")
       return
     }
 
@@ -413,7 +413,7 @@ export function RoomChatShell() {
         >
           <div className="mb-8 flex items-center gap-3">
             <span className="grid size-11 place-items-center rounded-2xl bg-primary/15 text-lg font-semibold text-primary">
-              S
+              T
             </span>
             <div>
               <p className="text-base font-semibold">{activeRoom.label}</p>
@@ -440,7 +440,7 @@ export function RoomChatShell() {
             disabled={!nameInput.trim()}
             type="submit"
           >
-            เข้าห้องแชท
+            เปิด workspace
           </button>
         </motion.form>
       </main>
@@ -462,10 +462,10 @@ export function RoomChatShell() {
           <div className="relative min-w-0 flex-1">
             <div className="relative w-fit max-w-full">
               <label className="sr-only" htmlFor="room-selector">
-                เลือกห้องแชท
+                เลือก workspace
               </label>
               <select
-                aria-label="เลือกห้องแชท"
+                aria-label="เลือก workspace"
                 className="w-full max-w-[8.5rem] appearance-none truncate bg-transparent pr-5 text-sm font-semibold outline-none disabled:opacity-60"
                 disabled={sending}
                 id="room-selector"
@@ -613,13 +613,13 @@ export function RoomChatShell() {
               ข้อความ
             </label>
             <textarea
-              aria-label="พิมพ์ข้อความในห้องแชท"
+              aria-label="พิมพ์ข้อความใน workspace"
               className="max-h-32 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm leading-6 outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={sending}
               id="room-message"
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleComposerKeyDown}
-              placeholder="พิมพ์ข้อความ..."
+              placeholder="พิมพ์ brief หรือคำสั่ง..."
               rows={1}
               value={draft}
             />

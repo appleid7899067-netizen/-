@@ -18,7 +18,7 @@ export default function RoomsPage() {
 function RoomsLoadingState() {
   return (
     <main className="grid min-h-dvh place-items-center bg-background text-muted-foreground">
-      กำลังเชื่อมต่อ live room...
+      กำลังเชื่อมต่อ live workspace...
     </main>
   );
 }

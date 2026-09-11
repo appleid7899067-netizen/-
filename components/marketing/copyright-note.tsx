@@ -16,8 +16,8 @@ export function CopyrightNote() {
   }, []);
 
   return (
-    <p className="mt-12 text-[13px] text-neutral-500">
-      © {year ?? ""} {brand.name} Neo-Connect — สร้างด้วย Next.js และ AI SDK
+    <p className="mt-12 text-[13px] text-muted-foreground">
+      © {year ?? ""} {brand.name} — สร้างด้วย Next.js และ AI SDK
     </p>
   );
 }
