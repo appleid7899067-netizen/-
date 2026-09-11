@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  isAgentMessage,
+  withAgentProfile,
+} from "@/lib/agent-profile";
 import { chatWithEightFallback, getFreeModels } from "@/lib/openrouter/router";
 
 export const dynamic = "force-dynamic";
@@ -26,10 +30,20 @@ export async function POST(request: Request) {
     );
   }
 
+  const clientMessages = body.messages.filter(isAgentMessage);
+  if (clientMessages.length !== body.messages.length) {
+    return NextResponse.json(
+      { error: "messages มีรูปแบบไม่ถูกต้อง" },
+      { status: 400 }
+    );
+  }
+
+  const agentMessages = withAgentProfile(clientMessages);
+
   try {
     const freeModels = await getFreeModels();
     const candidates = freeModels.map((m) => m.id).slice(0, 8);
-    const result = await chatWithEightFallback(body.messages, {
+    const result = await chatWithEightFallback(agentMessages, {
       apiKey,
       candidates,
     });

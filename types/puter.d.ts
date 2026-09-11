@@ -1,3 +1,8 @@
+type PuterChatMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+};
+
 declare global {
   interface Window {
     puter?: {
@@ -19,7 +24,7 @@ declare global {
         chat: (
           messages:
             | string
-            | Array<{ role: string; content: string }>,
+            | PuterChatMessage[],
           options?: {
             model?: string;
             stream?: boolean;

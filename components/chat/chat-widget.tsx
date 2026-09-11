@@ -4,6 +4,7 @@ import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { brand } from "@/lib/brand";
+import { withAgentProfile } from "@/lib/agent-profile";
 import { cn } from "@/lib/utils";
 
 type ChatMessage = {
@@ -72,7 +73,9 @@ export function ChatWidget() {
 
     try {
       const response = await window.puter.ai.chat(
-        history.map((m) => ({ role: m.role, content: m.content })),
+        withAgentProfile(
+          history.map((m) => ({ role: m.role, content: m.content }))
+        ),
         { stream: true }
       );
 
