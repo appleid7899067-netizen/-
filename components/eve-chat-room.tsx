@@ -17,7 +17,7 @@ type PuterAuth = {
 }
 
 type PuterAI = {
-  listModels: () => Promise<FreeModel[]>
+  listModels: (provider?: string) => Promise<FreeModel[]>
   chat: (
     messages: { role: "user" | "assistant" | "system"; content: string }[],
     options: { model: string; stream?: boolean },
@@ -50,6 +50,11 @@ function chunkText(chunk: unknown) {
 
 function isFreeModel(model: FreeModel) {
   return Number(model.cost?.input ?? -1) === 0 && Number(model.cost?.output ?? -1) === 0
+}
+
+function isDeepSeekModel(model: FreeModel) {
+  const haystack = `${model.id} ${model.name ?? ""} ${model.provider ?? ""}`.toLowerCase()
+  return haystack.includes("deepseek") || String(model.provider ?? "").toLowerCase() === "deepseek"
 }
 
 export default function EveChatRoom() {
@@ -98,20 +103,30 @@ export default function EveChatRoom() {
 
   useEffect(() => {
     let cancelled = false
-    const loadFreeModels = async () => {
+    const loadDeepSeekFreeModels = async () => {
       if (!window.puter) return
       try {
-        const models = await window.puter.ai.listModels()
-        const free = models.filter(isFreeModel)
+        // Ask Puter specifically for DeepSeek models, then keep only zero-cost models.
+        const providerModels = await window.puter.ai.listModels("deepseek")
+        const deepSeekFree = providerModels.filter((model) => isDeepSeekModel(model) && isFreeModel(model))
+
+        // Some Puter deployments may not accept a provider filter, so fall back to the full list.
+        let free = deepSeekFree
+        if (free.length === 0) {
+          const allModels = await window.puter.ai.listModels()
+          free = allModels.filter((model) => isDeepSeekModel(model) && isFreeModel(model))
+        }
+
         if (!cancelled) {
           setFreeModels(free)
           setModelId((current) => current || free[0]?.id || "")
+          if (free.length === 0) setError("ไม่พบโมเดล DeepSeek ฟรีใน Puter ตอนนี้")
         }
       } catch {
-        if (!cancelled) setError("โหลดรายการโมเดลฟรีไม่สำเร็จ")
+        if (!cancelled) setError("โหลดโมเดล DeepSeek ฟรีไม่สำเร็จ")
       }
     }
-    loadFreeModels()
+    loadDeepSeekFreeModels()
     return () => {
       cancelled = true
     }
@@ -142,7 +157,7 @@ export default function EveChatRoom() {
       return
     }
     if (!selectedModel) {
-      setError("ไม่พบโมเดลฟรีที่พร้อมใช้งานใน Puter")
+      setError("ไม่พบโมเดล DeepSeek ฟรีที่พร้อมใช้งานใน Puter")
       return
     }
 
@@ -166,12 +181,11 @@ export default function EveChatRoom() {
           if (!part) continue
           reply += part
           setMessages((current) => {
-            const withoutStreaming = current.filter((item) => item.role !== "assistant" || item.text !== reply.slice(0, -part.length))
-            const last = withoutStreaming[withoutStreaming.length - 1]
+            const last = current[current.length - 1]
             if (last?.role === "assistant") {
-              return [...withoutStreaming.slice(0, -1), { role: "assistant", text: reply }]
+              return [...current.slice(0, -1), { role: "assistant", text: reply }]
             }
-            return [...withoutStreaming, { role: "assistant", text: reply }]
+            return [...current, { role: "assistant", text: reply }]
           })
         }
       } else {
@@ -187,7 +201,7 @@ export default function EveChatRoom() {
         if (reply) setMessages((current) => [...current, { role: "assistant", text: reply }])
       }
 
-      if (!reply.trim()) throw new Error("โมเดลฟรีไม่ส่งคำตอบกลับมา")
+      if (!reply.trim()) throw new Error("DeepSeek ไม่ส่งคำตอบกลับมา")
     } catch (err) {
       setMessages((current) => current.slice(0, -1))
       setError(err instanceof Error ? err.message : "ส่งข้อความไม่สำเร็จ")
@@ -212,7 +226,7 @@ export default function EveChatRoom() {
       <div className="flex items-center justify-center gap-2 border-b border-white/5 px-4 py-2 text-xs text-white/55">
         {signedIn ? <CheckCircle2 size={14} className="text-lime-300" /> : <span className="size-2 rounded-full bg-white/30" />}
         <span>{signedIn ? "Puter พร้อมใช้งาน" : "ต้องเข้าสู่ระบบ Puter"}</span>
-        {selectedModel && <span className="rounded-full bg-lime-300/10 px-2 py-0.5 text-lime-200">ฟรี · {selectedModel.name || selectedModel.id}</span>}
+        {selectedModel && <span className="rounded-full bg-lime-300/10 px-2 py-0.5 text-lime-200">DeepSeek ฟรี · {selectedModel.name || selectedModel.id}</span>}
       </div>
 
       <section className="flex-1 overflow-y-auto px-4 py-6">
@@ -222,7 +236,7 @@ export default function EveChatRoom() {
               <div className="flex items-center gap-1 text-5xl font-bold tracking-[-0.18em] text-lime-200/90"><span>≡</span><span className="font-light italic">/</span><span>≡</span></div>
               <div className="text-center">
                 <h1 className="text-xl font-semibold">ถาม TEMPLATE OS Copilot</h1>
-                <p className="mt-2 text-sm text-white/40">ใช้เฉพาะโมเดลฟรีจาก Puter</p>
+                <p className="mt-2 text-sm text-white/40">ใช้ DeepSeek เฉพาะโมเดลฟรีจาก Puter</p>
               </div>
             </div>
           ) : (
@@ -234,7 +248,7 @@ export default function EveChatRoom() {
                   </div>
                 </div>
               ))}
-              {sending && <div className="flex items-center gap-2 px-2 text-sm text-white/45"><Loader2 size={16} className="animate-spin" /> กำลังตอบกลับด้วยโมเดลฟรี...</div>}
+              {sending && <div className="flex items-center gap-2 px-2 text-sm text-white/45"><Loader2 size={16} className="animate-spin" /> กำลังตอบกลับด้วย DeepSeek...</div>}
             </div>
           )}
         </div>
@@ -274,7 +288,7 @@ export default function EveChatRoom() {
               </button>
             </div>
           </form>
-          <p className="mt-2 text-center text-[11px] text-white/25">Enter เพื่อส่ง · Shift + Enter ขึ้นบรรทัดใหม่ · ใช้โมเดลฟรีเท่านั้น</p>
+          <p className="mt-2 text-center text-[11px] text-white/25">Enter เพื่อส่ง · Shift + Enter ขึ้นบรรทัดใหม่ · DeepSeek ฟรีเท่านั้น</p>
         </div>
       </div>
     </main>
